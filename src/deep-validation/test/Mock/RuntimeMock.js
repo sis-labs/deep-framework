@@ -10,7 +10,6 @@ import {Runtime} from '../../node_modules/deep-core/lib.compiled/AWS/Lambda/Runt
  * Lambda runtime mock to test validateRuntimeInput
  */
 
-
 export class RuntimeMock extends Runtime {
   /**
    * @param {Object} kernel
