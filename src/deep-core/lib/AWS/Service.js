@@ -32,6 +32,13 @@ export class Service {
   /**
    * @returns {String}
    */
+  static get SIMPLE_EMAIL_SERVICE() {
+    return 'ses';
+  }
+
+  /**
+   * @returns {String}
+   */
   static get SIMPLE_STORAGE_SERVICE() {
     return 's3';
   }
@@ -55,6 +62,13 @@ export class Service {
    */
   static get COGNITO_IDENTITY() {
     return 'cognito-identity';
+  }
+
+  /**
+   * @returns {String}
+   */
+  static get COGNITO_IDENTITY_PROVIDER() {
+    return 'cognito-idp';
   }
 
   /**
@@ -104,6 +118,13 @@ export class Service {
    */
   static get SECURITY_TOKEN_SERVICE() {
     return 'sts';
+  }
+
+  /**
+   * @returns {String}
+   */
+  static get CLOUD_WATCH() {
+    return 'cloudwatch';
   }
 
   /**
@@ -182,6 +203,7 @@ export class Service {
       Service.DYNAMO_DB,
       Service.SIMPLE_NOTIFICATION_SERVICE,
       Service.COGNITO_IDENTITY,
+      Service.COGNITO_IDENTITY_PROVIDER,
       Service.COGNITO_SYNC,
       Service.ELASTIC_CACHE,
       Service.IDENTITY_AND_ACCESS_MANAGEMENT,
@@ -197,6 +219,8 @@ export class Service {
       Service.EC2,
       Service.ELASTIC_SEARCH,
       Service.CLOUD_WATCH_EVENTS,
+      Service.CLOUD_WATCH,
+      Service.SIMPLE_EMAIL_SERVICE,
     ];
   }
 }

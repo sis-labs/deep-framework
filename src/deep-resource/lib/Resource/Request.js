@@ -47,6 +47,7 @@ export class Request {
     this._publicCached = false;
 
     this._async = false;
+    this._xhrAsync = true; // it's passed to httpOptions.xhrAsync option of AWS Service
     this._native = false;
 
     this._validationSchemaName = null;
@@ -55,6 +56,7 @@ export class Request {
     this._returnLogs = false;
 
     this._withUserCredentials = true;
+    this._authScope = this._buildAuthScope();
   }
 
   /**
@@ -109,6 +111,13 @@ export class Request {
 
   /**
    * @returns {Boolean}
+   */
+  get xhrAsync() {
+    return this._xhrAsync;
+  }
+
+  /**
+   * @returns {Boolean}
    *
    * @todo: remove this?
    */
@@ -144,6 +153,21 @@ export class Request {
 
     this._native = true;
     this._async = true;
+
+    return this;
+  }
+
+  /**
+   * @param {Boolean} flag
+   *
+   * @returns {Request}
+   */
+  httpXhrAsync(flag) {
+    if (!this.isLambda) {
+      throw new Exception('XHR sync requests are supported only for calls to lambda functions.', 400);
+    }
+
+    this._xhrAsync = !!flag;
 
     return this;
   }
@@ -258,6 +282,16 @@ export class Request {
   }
 
   /**
+   * @param {String|null} authScope
+   * @returns {Request}
+   */
+  authScope(authScope) {
+    this._authScope = authScope;
+
+    return this;
+  }
+
+  /**
    * @returns {String}
    * @private
    */
@@ -335,7 +369,9 @@ export class Request {
   }
 
   /**
+   *
    * @param {Function} callback
+   * @returns {Request}
    */
   invalidateCache(callback = () => {}) {
     if (!this.isCached) {
@@ -372,6 +408,7 @@ export class Request {
 
   /**
    * @param {Function} callback
+   * @returns {Request}
    */
   send(callback = () => {}) {
     let cache = this.cacheImpl;
@@ -421,7 +458,7 @@ export class Request {
       eventName: this.method,
       eventId: this.customId,
       requestId: this.customId,
-      payload: this.payload,
+      time: Date.now(),
     };
 
     let decoratedCallback = (response) => {
@@ -429,10 +466,11 @@ export class Request {
         this._saveResponseToCache(response);
       }
 
-      requestEvent.requestId = response.requestId;
+      requestEvent.requestId = requestEvent.mainRequestId = response.requestId;
 
       let responseEvent = util._extend({}, requestEvent);
       responseEvent.payload = response;
+      responseEvent.time = Date.now();
 
       logService.rumLog(requestEvent);
       logService.rumLog(responseEvent);
@@ -444,9 +482,11 @@ export class Request {
       let result = this._validate();
 
       if (result.error) {
-        decoratedCallback(this._createValidationErrorResponse(result.error));
+        return decoratedCallback(this._createValidationErrorResponse(result.error));
       }
     }
+
+    this._fillPayloadWithSystemData();
 
     if (!this._native) {
       return this._sendThroughApi(decoratedCallback);
@@ -474,6 +514,26 @@ export class Request {
   }
 
   /**
+   * @returns {Request}
+   * @private
+   */
+  _fillPayloadWithSystemData() {
+    let resource = this.action.resource;
+
+    if (!resource.isBackend || !resource.log.isRumEnabled()) {
+      return this;
+    }
+
+    let runtimeContext = resource.contextProvider.context;
+
+    this._payload.lambdaDepthLevel = (runtimeContext.getDeepFrameworkOption('lambdaDepthLevel') || 0) + 1;
+    this._payload.mainRequestId = runtimeContext.getDeepFrameworkOption('mainRequestId') ||
+      runtimeContext.awsRequestId;
+
+    return this;
+  }
+
+  /**
    * @param {Object} response
    * @param {Function} callback
    * @private
@@ -493,7 +553,6 @@ export class Request {
       resourceId: cacheKey,
       eventName: 'set',
       requestId: response.requestId,
-      payload: {response,},
     };
 
     logService.rumLog(event);
@@ -512,6 +571,8 @@ export class Request {
       }
 
       callback(error, result);
+
+      return;
     });
   }
 
@@ -522,6 +583,11 @@ export class Request {
    */
   _loadResponseFromCache(driver, key, callback) {
     driver.has(key, (err, has) => {
+      if(err) {
+        callback(new CachedRequestException(`Error to check if has in cache key ${key}`));
+        return;
+      }
+
       if (has) {
         let logService = this.action.resource.log;
 
@@ -557,7 +623,6 @@ export class Request {
     });
   }
 
-
   /**
    * @returns {Object}
    * @private
@@ -573,7 +638,7 @@ export class Request {
   }
 
   /**
-   * @param validationError
+   * @param {Error} validationError
    *
    * @returns {LambdaResponse}
    * @private
@@ -623,6 +688,9 @@ export class Request {
 
     let options = {
       region: this._action.region,
+      httpOptions: {
+        xhrAsync: this.xhrAsync
+      },
     };
 
     let invocationParameters = {
@@ -696,7 +764,7 @@ export class Request {
     let parsedUrl = urlParse(url, qs);
     let apiHost = parsedUrl.hostname;
     let apiPath = parsedUrl.pathname ? parsedUrl.pathname : '/';
-    
+
     let opsToSign = {
       service: Core.AWS.Service.API_GATEWAY_EXECUTE,
       region: this.getEndpointHostRegion(apiHost),
@@ -779,6 +847,7 @@ export class Request {
   }
 
   /**
+   * @param {Function} callback
    * @returns {Request}
    * @private
    */
@@ -802,7 +871,7 @@ export class Request {
       }
 
       callback(null, credentials);
-    });
+    }, this._authScope);
 
     return this;
   }
@@ -816,6 +885,17 @@ export class Request {
 
     // @todo - expose API region into config provision section
     return regionParts ? regionParts[1] : this._action.region; // use action region as fallback
+  }
+
+  /**
+   * @return {String}
+   */
+  _buildAuthScope() {
+    let action = this._action;
+    let resource = action.resource;
+    let microservice = resource.microservice;
+
+    return `${microservice.identifier}:${resource.name}:${action.name}`;
   }
 
   /**

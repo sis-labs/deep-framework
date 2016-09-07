@@ -1,6 +1,6 @@
 {
   "name": "deep-log",
-  "version": "1.9.0",
+  "version": "1.9.12",
   "description": "DEEP Log Library",
   "keywords": [
     "digital enterprise end-to-end platform",
@@ -54,7 +54,7 @@
     "compile": "bash node-bin/compile.sh",
     "prepare-browserify": "npm install raven-js@1.1.*",
     "prepublish": "npm run compile",
-    "pretest": "npm link deep-kernel deep-core"
+    "pretest": "npm link deep-kernel deep-core babel-preset-es2015"
   },
   "dependencies": {
     "deep-kernel": "^1.x.x",
@@ -66,7 +66,7 @@
     "aws-sdk": "^2.2.x"
   },
   "devDependencies": {
-    "chai": "^3.2.x",
+    "chai": "^3.5.x",
     "sinon": "^1.17.x",
     "sinon-chai": "^2.8.x",
     "proxyquire": "^1.7.x"

@@ -14,6 +14,7 @@ import Core from 'deep-core';
 export class DI {
   constructor() {
     this._bottle = new Bottle();
+    this._localBackend = false;
   }
 
   /**
@@ -69,7 +70,7 @@ export class DI {
 
   /**
    * Returns a service / parameter from container
-   *
+   * @param {String} key
    * @returns {Object}
    */
   get(key) {
@@ -82,10 +83,24 @@ export class DI {
 
   /**
    * Checks if service / parameter exists in container
-   *
+   * @param {String} key
    * @returns {Boolean}
    */
   has(key) {
     return this._bottle.container.hasOwnProperty(key);
+  }
+
+  /**
+   * @param {Boolean} localBackend
+   */
+  set localBackend(localBackend) {
+    this._localBackend = localBackend;
+  }
+
+  /**
+   * @returns {Boolean}
+   */
+  get localBackend() {
+    return this._localBackend;
   }
 }

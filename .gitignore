@@ -87,6 +87,8 @@ lib-cov
 
 # Coverage directory used by tools like istanbul
 coverage
+coverages
+compile
 
 # Grunt intermediate storage (http://gruntjs.com/creating-plugins#storing-task-files)
 .grunt
@@ -107,4 +109,5 @@ npm-debug.log
 
 #####=== Proprietary ===#####
 lib.compiled
+**/test/bin/**/*.js
 /tests/*

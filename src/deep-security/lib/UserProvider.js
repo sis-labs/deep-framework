@@ -18,17 +18,18 @@ export class UserProvider {
   /**
    * @param {String} id
    * @param {Function} callback
-   * @returns {*}
    */
   loadUserByIdentityId(id, callback) {
     let retrieveUserResource = this._deepResource.get(this._retrieveUserResource);
 
-    retrieveUserResource.request({Id: id}).send(function(response) {
+    // authScope(null) forces deep-resource to use cognito default credentials
+    retrieveUserResource.request({Id: id}).authScope(null).send(response => {
       if (response.error) {
-        throw new LoadUserException(id, response.error);
+        callback(new LoadUserException(id, response.error), null);
+        return;
       }
 
-      return callback(response.data);
+      return callback(null, response.data);
     });
   }
 }

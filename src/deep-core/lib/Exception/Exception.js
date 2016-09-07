@@ -5,9 +5,30 @@
 'use strict';
 
 /**
+ * Fixes babel@6 issue: https://phabricator.babeljs.io/T3083
+ * @param {*} errorClass
+ * @returns {ExtendableClass}
+ * @constructor
+ */
+function Extendable(errorClass) {
+
+  /**
+   * @constructor
+   */
+  function ExtendableClass() {
+    errorClass.apply(this, arguments);
+  }
+
+  ExtendableClass.prototype = Object.create(errorClass.prototype);
+  Object.setPrototypeOf(ExtendableClass, errorClass);
+
+  return ExtendableClass;
+}
+
+/**
  * Base exception
  */
-export class Exception extends Error {
+export class Exception extends Extendable(Error) {
   /**
    * @returns {String}
    */
@@ -26,7 +47,7 @@ export class Exception extends Error {
    * @param {String} message
    * @param {Number} code
    */
-  constructor(message, code = null) {
+  constructor(message, code = Exception.DEFAULT_CODE) {
     super();
 
     if (Error.hasOwnProperty('captureStackTrace')) {

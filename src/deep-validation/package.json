@@ -60,7 +60,7 @@
     "test": "bash node-bin/test.sh",
     "compile": "bash node-bin/compile.sh",
     "prepublish": "npm run compile",
-    "pretest": "npm link deep-kernel deep-core deep-log"
+    "pretest": "npm link deep-kernel deep-core deep-log babel-preset-es2015"
   },
   "dependencies": {
     "deep-kernel": "^1.x.x",
@@ -69,7 +69,7 @@
     "vogels": "MitocGroup/vogels#v2.2.0"
   },
   "devDependencies": {
-    "chai": "^3.2.x",
+    "chai": "^3.5.x",
     "sinon": "^1.17.x",
     "sinon-chai": "^2.8.x"
   },

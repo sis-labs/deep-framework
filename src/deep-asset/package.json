@@ -1,6 +1,6 @@
 {
   "name": "deep-asset",
-  "version": "1.9.0",
+  "version": "1.9.1",
   "description": "DEEP Asset Library",
   "keywords": [
     "digital enterprise end-to-end platform",
@@ -53,14 +53,14 @@
     "test": "bash node-bin/test.sh",
     "compile": "bash node-bin/compile.sh",
     "prepublish": "npm run compile",
-    "pretest": "npm link deep-kernel deep-core"
+    "pretest": "npm link deep-kernel deep-core babel-preset-es2015"
   },
   "dependencies": {
     "deep-kernel": "^1.x.x",
     "deep-core": "^1.x.x"
   },
   "devDependencies": {
-    "chai": "^3.2.x",
+    "chai": "^3.5.x",
     "sinon": "^1.17.x",
     "sinon-chai": "^2.8.x"
   },

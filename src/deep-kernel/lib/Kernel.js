@@ -2,6 +2,8 @@
  * Created by mgoria on 5/26/15.
  */
 
+/*eslint no-proto: 0*/
+
 'use strict';
 
 import Core from 'deep-core';
@@ -33,6 +35,7 @@ export class Kernel {
     this._services = deepServices;
     this._context = context;
     this._runtimeContext = {};
+    this._contextProvider = null;
     this._env = null;
     this._container = new DI();
     this._isLoaded = false;
@@ -59,6 +62,20 @@ export class Kernel {
    */
   set runtimeContext(runtimeContext) {
     this._runtimeContext = runtimeContext;
+  }
+
+  /**
+   * @returns {Object}
+   */
+  get contextProvider() {
+    return this._contextProvider;
+  }
+
+  /**
+   * @param {Object} contextProvider
+   */
+  set contextProvider(contextProvider) {
+    this._contextProvider = contextProvider;
   }
 
   /**
@@ -106,7 +123,9 @@ export class Kernel {
   }
 
   /**
+   *
    * @param {Function} cb
+   * @returns {Kernel}
    */
   loadAsyncConfig(cb) {
     if (this._asyncConfigCache) {
@@ -325,9 +344,9 @@ export class Kernel {
    */
   get isLocalhost() {
     return this.isFrontend && [
-        'localhost', '127.0.0.1',
-        '0.0.0.0', '::1',
-      ].indexOf(window.location.hostname) !== -1;
+      'localhost', '127.0.0.1',
+      '0.0.0.0', '::1',
+    ].indexOf(window.location.hostname) !== -1;
   }
 
   /**
@@ -405,6 +424,8 @@ export class Kernel {
       Kernel.CONFIG,
       this._config
     );
+
+    this._container.localBackend = Core.IS_DEV_SERVER;
 
     let bootingServices = 0;
 

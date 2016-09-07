@@ -89,9 +89,7 @@ export class LambdaResponse extends Response {
     if (this._rawError) {
       this._error = this._rawError;
     } else if (!this._request.async) {
-      if (!responsePayload) {
-        this._error = new Error('There is no error nor payload in Lambda response');
-      } else if (responsePayload.hasOwnProperty('errorMessage')) {
+      if (responsePayload && responsePayload.hasOwnProperty('errorMessage')) {
         this._error = LambdaResponse.getPayloadError(responsePayload);
       }
     } else if (this._statusCode !== 202) { // check for failed async invocation
@@ -122,7 +120,7 @@ export class LambdaResponse extends Response {
         decodedPayload = LambdaResponse._decodePayloadObject(this._rawData.Payload);
 
         // treat the case when error is stored in payload (nested)
-        if (decodedPayload.hasOwnProperty('errorMessage')) {
+        if (decodedPayload && decodedPayload.hasOwnProperty('errorMessage')) {
           decodedPayload = LambdaResponse._decodeRawErrorObject(decodedPayload.errorMessage);
         }
       } else if (this._rawData.errorMessage) {
@@ -153,10 +151,10 @@ export class LambdaResponse extends Response {
       }
     } else {
       errorObj = errorObj || {
-          errorMessage: 'Unknown error occurred.',
-          errorStack: (new Error('Unknown error occurred.')).stack,
-          errorType: 'UnknownError',
-        };
+        errorMessage: 'Unknown error occurred.',
+        errorStack: (new Error('Unknown error occurred.')).stack,
+        errorType: 'UnknownError',
+      };
     }
 
     return errorObj;
@@ -188,7 +186,9 @@ export class LambdaResponse extends Response {
     if (typeof rawPayload === 'string') {
       try {
         payload = JSON.parse(payload);
-      } catch(e) {}
+      } catch(e) {
+        console.debug('Unable to parse: ', e);
+      }
     }
 
     return payload;
@@ -217,14 +217,18 @@ export class LambdaResponse extends Response {
           Object.defineProperty(error, 'name', {
             value: payload.errorType,
           });
-        } catch (e) {   }
+        } catch (e) {
+          console.debug('Unable to define property: ', e);
+        }
       }
 
       try {
         Object.defineProperty(error, 'stack', {
           value: payload.errorStack,
         });
-      } catch (e) {   }
+      } catch (e) {
+        console.debug('Unable to define property: ', e);
+      }
 
       return error;
     }

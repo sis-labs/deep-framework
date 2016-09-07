@@ -13,25 +13,54 @@ import {InvalidProviderIdentityException} from './Exception/InvalidProviderIdent
  */
 export class IdentityProvider {
   /**
-   * @param providerName
-   * @param providers
+   * @param {Object} providers
+   * @param {String} providerName
+   * @param {Object} identityMetadata
+   */
+  constructor(providers, providerName, identityMetadata) {
+    let providerDomain = this.getProviderDomain(providerName, providers);
+
+    if (!providerDomain) {
+      throw new MissingLoginProviderException(providerName);
+    }
+
+    if (identityMetadata.provider && identityMetadata.provider !== providerName) {
+      throw new IdentityProviderMismatchException(providerName, identityMetadata.provider);
+    }
+
+    let normalizedMetadata = this._normalizeIdentityMetadata(providerName, identityMetadata);
+
+    this._metadata = identityMetadata;
+    this._userToken = normalizedMetadata.token;
+    this._tokenExpTime = new Date(normalizedMetadata.expireTime);
+    this._userId = normalizedMetadata.userId;
+    this._providers = providers;
+    this._name = providerDomain;
+  }
+
+  /**
+   * @param {String} providerName
+   * @param {Object} providers
    * @returns {*}
    */
   getProviderDomain(providerName, providers) {
     let domainRegexp;
 
     switch(providerName) {
-      case 'amazon':
+      case IdentityProvider.AMAZON_PROVIDER:
         domainRegexp = /^www\.amazon\.com$/;
         break;
-      case 'facebook':
+      case IdentityProvider.FACEBOOK_PROVIDER:
         domainRegexp = /^graph\.facebook\.com$/;
         break;
-      case 'google':
+      case IdentityProvider.GOOGLE_PROVIDER:
         domainRegexp = /^accounts\.google\.com$/;
         break;
-      case 'auth0':
+      case IdentityProvider.AUTH0_PROVIDER:
         domainRegexp = /^.+\.auth0\.com$/;
+        break;
+      case IdentityProvider.COGNITO_USER_POOL_PROVIDER:
+        domainRegexp = /^cognito\-idp\.[\w\d\-]+\.amazonaws\.com\/[\w\d\-]+$/;
         break;
     }
 
@@ -53,30 +82,55 @@ export class IdentityProvider {
   }
 
   /**
-   * @param {Object} providers
+   * @todo: Implement other identity providers
    * @param {String} providerName
    * @param {Object} identityMetadata
+   * @returns {{token: String, userId: String, expireTime: Number}}
+   * @private
    */
-  constructor(providers, providerName, identityMetadata) {
-    let providerDomain = this.getProviderDomain(providerName, providers);
+  _normalizeIdentityMetadata(providerName, identityMetadata) {
+    let token = null;
+    let expiresIn  = null;
+    let expireTime = null;
+    let userId = null;
 
-    if (!providerDomain) {
-      throw new MissingLoginProviderException(providerName);
+    switch(providerName) {
+      case IdentityProvider.FACEBOOK_PROVIDER:
+        token = identityMetadata.accessToken;
+        expiresIn = identityMetadata.expiresIn;
+        userId = identityMetadata.userID;
+        break;
+
+      case IdentityProvider.COGNITO_USER_POOL_PROVIDER:
+        let idTokenInstance = identityMetadata.getSignInUserSession().getIdToken();
+        token = idTokenInstance.getJwtToken();
+        expireTime = idTokenInstance.getExpiration() * 1000;
+        break;
+
+      case IdentityProvider.AMAZON_PROVIDER:
+        token = identityMetadata.access_token;
+        userId = identityMetadata.user_id;
+        expiresIn = identityMetadata.expires_in || 3600;
+        break;
+
+      case IdentityProvider.AUTH0_PROVIDER:
+        expireTime = identityMetadata.tokenExpirationTime;
+        token = identityMetadata.access_token;
+        userId = identityMetadata.user_id;
+        break;
     }
 
-    if (identityMetadata.provider && identityMetadata.provider !== providerName) {
-      throw new IdentityProviderMismatchException(providerName, identityMetadata.provider);
-    }
+    userId = userId || null;
+    expireTime = expireTime ||
+      (expiresIn ?
+        (Date.now() + expiresIn * 1000) :
+        null);
 
-    if (!identityMetadata.access_token || !identityMetadata.tokenExpirationTime) {
+    if (!(token && expireTime)) {
       throw new InvalidProviderIdentityException(providerName);
     }
 
-    this._providers = providers;
-    this._name = providerDomain;
-    this._userToken = identityMetadata.access_token;
-    this._tokenExpTime = new Date(identityMetadata.tokenExpirationTime);
-    this._userId = identityMetadata.user_id || null;
+    return {token, userId, expireTime};
   }
 
   /**
@@ -135,5 +189,40 @@ export class IdentityProvider {
     }
 
     return this.providers[name];
+  }
+
+  /**
+   * @returns {String}
+   */
+  static get COGNITO_USER_POOL_PROVIDER() {
+    return 'cognito-user-pool';
+  }
+
+  /**
+   * @returns {String}
+   */
+  static get FACEBOOK_PROVIDER() {
+    return 'facebook';
+  }
+
+  /**
+   * @returns {String}
+   */
+  static get AMAZON_PROVIDER() {
+    return 'amazon';
+  }
+
+  /**
+   * @returns {String}
+   */
+  static get GOOGLE_PROVIDER() {
+    return 'google';
+  }
+
+  /**
+   * @returns {String}
+   */
+  static get AUTH0_PROVIDER() {
+    return 'auth0';
   }
 }

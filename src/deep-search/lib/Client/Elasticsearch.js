@@ -6,26 +6,32 @@
 
 import Core from 'deep-core';
 import elasticsearch from 'elasticsearch';
-import {Aws4SignedHttpConnectionFactory} from './Connection/Aws4SignedHttpConnectionFactory';
+import {Aws4SignedHttpConnection} from './Connection/Aws4SignedHttpConnection';
 
 /**
  * Elasticsearch client
  * @see https://www.elastic.co/guide/en/elasticsearch/client/javascript-api/current/index.html
  */
 export class Elasticsearch {
+
   /**
    * @param {String} host
    * @param {Function|null} decorator
+   * @param {Boolean} useAws4Signature
    */
-  constructor(host, decorator = null) {
+  constructor(host, decorator = null, useAws4Signature = true) {
     this._host = host;
     this._decorator = decorator;
 
-    this._esClient = new elasticsearch.Client({
-      host: this._host,
-      apiVersion: Elasticsearch.API_VERSION,
-      connectionClass: new Aws4SignedHttpConnectionFactory().create()
-    });
+    let clientOpts = {};
+    clientOpts.host = this._host;
+    clientOpts.apiVersion = Elasticsearch.API_VERSION;
+
+    if (useAws4Signature) {
+      clientOpts.connectionClass = Aws4SignedHttpConnection.createPrototype();
+    }
+
+    this._esClient = new elasticsearch.Client(clientOpts);
 
     this._proxy(this, this._esClient, this._decorator);
   }
@@ -35,14 +41,12 @@ export class Elasticsearch {
    * @param {elasticsearch} handler
    * @param {Function} decorator
    * @param {Array} methods
-   *
-   * @returns {Object}
    * @private
    */
   _proxy(target, handler, decorator, methods = Elasticsearch.API_METHODS) {
-    return new Core.Generic.MethodsProxy(target)
-      .decorate(decorator)
-      .proxyOverride(handler, ...methods);
+    let proxy = new Core.Generic.MethodsProxy(target).decorate(decorator);
+    proxy.proxyOverride(handler, ...methods);
+    proxy.proxyProperties(handler);
   }
 
   /**

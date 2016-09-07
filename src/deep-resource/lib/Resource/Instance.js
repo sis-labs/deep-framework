@@ -25,6 +25,7 @@ export class Instance {
     this._cache = null;
     this._security = null;
     this._validation = null;
+    this._contextProvider = null;
     this._log = null;
 
     this._fillActions();
@@ -197,6 +198,20 @@ export class Instance {
   }
 
   /**
+   * @param {ContextProvider} contextProvider
+   */
+  set contextProvider(contextProvider) {
+    this._contextProvider = contextProvider;
+  }
+
+  /**
+   * @returns {ContextProvider}
+   */
+  get contextProvider() {
+    return this._contextProvider;
+  }
+
+  /**
    * @param {String} actionName
    * @returns {boolean}
    */
@@ -205,7 +220,7 @@ export class Instance {
   }
 
   /**
-   * @param actionName
+   * @param {String} actionName
    * @returns {Action}
    */
   action(actionName) {
@@ -219,6 +234,7 @@ export class Instance {
   /**
    * @param {String} actionName
    * @param {*} args
+   * @returns {Action}
    */
   request(actionName, ...args) {
     return this.action(actionName).request(...args);

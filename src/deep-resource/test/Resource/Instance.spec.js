@@ -15,9 +15,9 @@ import KernelFactory from '../common/KernelFactory';
 import backendConfig from '../common/backend-cfg-json';
 
 suite('Resource/Instance', () => {
-  let actionName = 'say-hello';
-  let resourceName = 'sample';
-  let microserviceIdentifier = 'hello.world.example';
+  let resourceName = 'say-hello';
+  let actionName = 'create-msg';
+  let microserviceIdentifier = 'deep-hello-world';
   let instance = null;
   let action = null;
   let backendKernelInstance = null;
@@ -137,13 +137,13 @@ suite('Resource/Instance', () => {
 
       let error = null;
       let testAction = 'find';
-      
+
       try {
         instance.action(testAction);
       } catch (e) {
         error = e;
       }
-      
+
       chai.assert.instanceOf(
         error, MissingActionException, 'error is an instance of MissingActionException'
       );
